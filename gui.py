@@ -437,7 +437,7 @@ class App:
         if ffmpeg is None:
             return
         self._save_settings()
-        self.queue.start(ffmpeg, Path(self.dest.get()))
+        self.queue.start(ffmpeg, Path(self.dest.get()), self.cfg.get("max_concurrent_downloads", 1))
         for job in list(self.queue.jobs):
             self.refresh_row(job.id)
         self.progress["value"] = 0
