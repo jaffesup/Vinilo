@@ -382,9 +382,43 @@ class ModernApp(BaseApp):
                           height=34, fg_color=c["panel2"], button_color=c["panel2"],
                           button_hover_color="#454545").grid(
                               row=4, column=1, sticky="ew", pady=5)
+        ctk.CTkLabel(advanced_grid, text="Cookies del navegador",
+                     text_color=c["muted"]).grid(row=5, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.cookies_from_browser = tk.StringVar(value=self.cfg.get("cookies_from_browser", "none"))
+        ctk.CTkOptionMenu(advanced_grid, variable=self.cookies_from_browser,
+                          values=["none", "chrome", "edge", "firefox", "brave", "opera", "vivaldi"],
+                          height=34, fg_color=c["panel2"], button_color=c["panel2"],
+                          button_hover_color="#454545").grid(
+                              row=5, column=1, sticky="ew", pady=5)
+        ctk.CTkLabel(advanced_grid, text="Códec de vídeo preferido",
+                     text_color=c["muted"]).grid(row=6, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.preferred_video_codec = tk.StringVar(value=self.cfg.get("preferred_video_codec", "Any"))
+        ctk.CTkOptionMenu(advanced_grid, variable=self.preferred_video_codec,
+                          values=["Any", "H264", "VP9", "AV1"], height=34,
+                          fg_color=c["panel2"], button_color=c["panel2"],
+                          button_hover_color="#454545").grid(
+                              row=6, column=1, sticky="ew", pady=5)
+        ctk.CTkLabel(advanced_grid, text="Códec de audio preferido",
+                     text_color=c["muted"]).grid(row=7, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.preferred_audio_codec = tk.StringVar(value=self.cfg.get("preferred_audio_codec", "Any"))
+        ctk.CTkOptionMenu(advanced_grid, variable=self.preferred_audio_codec,
+                          values=["Any", "AAC", "Opus", "MP3"], height=34,
+                          fg_color=c["panel2"], button_color=c["panel2"],
+                          button_hover_color="#454545").grid(
+                              row=7, column=1, sticky="ew", pady=5)
+        ctk.CTkLabel(advanced_grid, text="Formato de subtítulos",
+                     text_color=c["muted"]).grid(row=8, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.preferred_subtitle_format = tk.StringVar(value=self.cfg.get("preferred_subtitle_format", "best"))
+        ctk.CTkOptionMenu(advanced_grid, variable=self.preferred_subtitle_format,
+                          values=["best", "srt", "vtt", "ass", "lrc"], height=34,
+                          fg_color=c["panel2"], button_color=c["panel2"],
+                          button_hover_color="#454545").grid(
+                              row=8, column=1, sticky="ew", pady=5)
         for var in (self.subtitle_languages, self.video_container,
                     self.preferred_frame_rate, self.extra_ytdlp_args,
-                    self.max_concurrent_downloads):
+                    self.max_concurrent_downloads, self.cookies_from_browser,
+                    self.preferred_video_codec, self.preferred_audio_codec,
+                    self.preferred_subtitle_format):
             var.trace_add("write", lambda *_: self._save_settings())
 
         show_page("downloads")
@@ -397,6 +431,10 @@ class ModernApp(BaseApp):
             preferred_frame_rate=self.preferred_frame_rate.get(),
             extra_ytdlp_args=self.extra_ytdlp_args.get().strip(),
             max_concurrent_downloads=max(1, min(10, int(self.max_concurrent_downloads.get()))),
+            cookies_from_browser=self.cookies_from_browser.get(),
+            preferred_video_codec=self.preferred_video_codec.get(),
+            preferred_audio_codec=self.preferred_audio_codec.get(),
+            preferred_subtitle_format=self.preferred_subtitle_format.get(),
         )
         return values
 
