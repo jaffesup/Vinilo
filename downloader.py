@@ -154,7 +154,7 @@ def build_command(kind: Kind, url: str, ffmpeg_dir: Path, dest: Path,
     if extra_args:
         try:
             # Los argumentos adicionales son intencionales y se dividen sin shell.
-            cmd += shlex.split(extra_args, posix=False)
+            cmd += shlex.split(extra_args, posix=True)
         except ValueError as exc:
             raise ValueError(f"Argumentos adicionales inválidos: {exc}") from exc
 
