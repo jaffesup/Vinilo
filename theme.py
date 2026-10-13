@@ -1,19 +1,18 @@
-"""Temas de Vinilo: minimalismo editorial, crema, carbón y acentos vivos."""
+"""Tema sobrio para Vinilo: carbón, grises, blanco y oro suave."""
 from tkinter import ttk
 
-# Paleta inspirada en el diseño de referencia, adaptada para mantener legibilidad.
 PALETTES = {
     "dark": {
-        "BG": "#414141", "PANEL": "#075653", "FIELD": "#262629",
-        "BORDER": "#555555", "FG": "#fff8e9", "MUTED": "#c8c4bd",
-        "ACCENT": "#1717f5", "ACCENT_HOVER": "#3535ff",
-        "SELECT": "#176f6b",
+        "BG": "#171717", "PANEL": "#222222", "FIELD": "#2b2b2b",
+        "BORDER": "#393939", "FG": "#f5f5f3", "MUTED": "#a5a5a0",
+        "ACCENT": "#c6a15b", "ACCENT_HOVER": "#d8b873",
+        "SELECT": "#51452e", "ON_ACCENT": "#171717",
     },
     "light": {
-        "BG": "#414141", "PANEL": "#fff1d6", "FIELD": "#ffffff",
-        "BORDER": "#d8cbb8", "FG": "#191919", "MUTED": "#77736e",
-        "ACCENT": "#1717f5", "ACCENT_HOVER": "#3535ff",
-        "SELECT": "#d9ddff",
+        "BG": "#f2f2ef", "PANEL": "#ffffff", "FIELD": "#f7f7f5",
+        "BORDER": "#deded8", "FG": "#222220", "MUTED": "#777771",
+        "ACCENT": "#a8843e", "ACCENT_HOVER": "#947333",
+        "SELECT": "#eee4cf", "ON_ACCENT": "#ffffff",
     },
 }
 FONT = ("Segoe UI", 10)
@@ -36,7 +35,7 @@ def apply(root, mode="dark") -> None:
     root.option_add("*TCombobox*Listbox.background", FIELD)
     root.option_add("*TCombobox*Listbox.foreground", FG)
     root.option_add("*TCombobox*Listbox.selectBackground", ACCENT)
-    root.option_add("*TCombobox*Listbox.selectForeground", "#ffffff")
+    root.option_add("*TCombobox*Listbox.selectForeground", p["ON_ACCENT"])
 
     s.configure(".", background=BG, foreground=FG, fieldbackground=FIELD,
                 bordercolor=BORDER, lightcolor=BG, darkcolor=BG,
@@ -45,57 +44,60 @@ def apply(root, mode="dark") -> None:
     s.configure("Card.TFrame", background=PANEL)
     s.configure("TLabel", background=BG, foreground=FG)
     s.configure("Card.TLabel", background=PANEL, foreground=FG)
-    s.configure("Title.TLabel", font=("Segoe UI", 27, "bold"))
+    s.configure("Title.TLabel", font=("Segoe UI", 30, "bold"),
+                foreground=FG, background=BG)
+    s.configure("Section.TLabel", font=("Segoe UI", 13, "bold"),
+                foreground=FG)
+    s.configure("Eyebrow.TLabel", font=("Segoe UI", 9, "bold"),
+                foreground=ACCENT)
     s.configure("Muted.TLabel", foreground=MUTED)
 
-    # Botones sobrios y redondez visual aproximada con padding amplio de ttk.
-    s.configure("TButton", background=FIELD, foreground="#ffffff",
-                bordercolor=FIELD, padding=(14, 9), relief="flat")
+    s.configure("TButton", background=FIELD, foreground=FG,
+                bordercolor=FIELD, padding=(13, 9), relief="flat",
+                font=("Segoe UI", 9))
     s.map("TButton", background=[("disabled", BORDER), ("active", BORDER)],
           foreground=[("disabled", MUTED)])
-    s.configure("Accent.TButton", background=ACCENT, foreground="#ffffff",
-                bordercolor=ACCENT, padding=(24, 11),
+    s.configure("Accent.TButton", background=ACCENT, foreground=p["ON_ACCENT"],
+                bordercolor=ACCENT, padding=(20, 11),
                 font=("Segoe UI", 10, "bold"), relief="flat")
     s.map("Accent.TButton",
           background=[("disabled", BORDER), ("active", ACCENT_HOVER)],
+          foreground=[("disabled", MUTED), ("active", p["ON_ACCENT"])],
           bordercolor=[("active", ACCENT_HOVER)])
-
     s.configure("TEntry", fieldbackground=FIELD, foreground=FG,
-                insertcolor=FG, bordercolor=BORDER, padding=10, relief="flat")
+                insertcolor=FG, bordercolor=BORDER, padding=11, relief="flat")
     s.map("TEntry", bordercolor=[("focus", ACCENT)])
     s.configure("TCombobox", fieldbackground=FIELD, background=FIELD,
-                foreground=FG, arrowcolor=FG, bordercolor=BORDER, padding=9)
+                foreground=FG, arrowcolor=ACCENT, bordercolor=BORDER, padding=9)
     s.map("TCombobox", fieldbackground=[("readonly", FIELD)],
           selectbackground=[("readonly", FIELD)],
           selectforeground=[("readonly", FG)],
           bordercolor=[("focus", ACCENT)])
-
-    s.configure("TProgressbar", troughcolor=PANEL, background=ACCENT,
-                bordercolor=PANEL, thickness=9)
+    s.configure("TProgressbar", troughcolor=BORDER, background=ACCENT,
+                bordercolor=BORDER, thickness=8)
     s.configure("Treeview", background=PANEL, fieldbackground=PANEL,
-                foreground=FG, bordercolor=BORDER, borderwidth=0, rowheight=36,
-                font=("Segoe UI", 10))
+                foreground=FG, bordercolor=BORDER, borderwidth=0,
+                rowheight=38, font=("Segoe UI", 10))
     s.map("Treeview", background=[("selected", p["SELECT"])],
           foreground=[("selected", FG)])
-    s.configure("Treeview.Heading", background=FIELD, foreground=FG,
-                relief="flat", padding=10, font=("Segoe UI", 9, "bold"))
+    s.configure("Treeview.Heading", background=FIELD, foreground=MUTED,
+                relief="flat", padding=11, font=("Segoe UI", 9, "bold"))
+    s.map("Treeview.Heading", background=[("active", BORDER)])
     s.configure("TScrollbar", background=BORDER, troughcolor=BG,
                 bordercolor=BG, arrowcolor=FG)
-    s.configure("TLabelframe", background=BG, foreground=FG,
-                bordercolor=BORDER, relief="flat", padding=8)
-    s.configure("TLabelframe.Label", background=BG, foreground=FG,
-                font=("Segoe UI", 10, "bold"))
+    s.configure("TLabelframe", background=PANEL, foreground=FG,
+                bordercolor=BORDER, relief="flat", padding=12)
+    s.configure("TLabelframe.Label", background=PANEL, foreground=ACCENT,
+                font=("Segoe UI", 9, "bold"))
 
 
 def dark_title_bar(root, mode="dark") -> None:
     """Intenta ajustar la barra de título en Windows."""
-    if mode != "dark":
-        return
     try:
         import ctypes
         root.update()
         hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
-        value = ctypes.c_int(1)
+        value = ctypes.c_int(1 if mode == "dark" else 0)
         for attr in (20, 19):
             ctypes.windll.dwmapi.DwmSetWindowAttribute(
                 hwnd, attr, ctypes.byref(value), ctypes.sizeof(value)
