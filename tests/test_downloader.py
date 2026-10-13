@@ -87,6 +87,23 @@ class DownloaderTests(unittest.TestCase):
         self.assertEqual(job.progress, 0.0)
         self.assertIsNone(job.code)
 
+    def test_browser_cookies_and_codec_preferences(self):
+        cmd = build_command(
+            Kind.VIDEO, "https://example.com/video", Path("ffmpeg"), Path("downloads"),
+            options={
+                "cookies_from_browser": "edge",
+                "preferred_video_codec": "H264",
+                "preferred_audio_codec": "AAC",
+                "preferred_subtitle_format": "srt",
+            },
+        )
+        self.assertIn("--cookies-from-browser", cmd)
+        self.assertIn("edge", cmd)
+        self.assertIn("vcodec:h264", cmd)
+        self.assertIn("acodec:aac", cmd)
+        self.assertIn("--convert-subs", cmd)
+        self.assertIn("srt", cmd)
+
 
 if __name__ == "__main__":
     unittest.main()
