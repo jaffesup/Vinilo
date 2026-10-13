@@ -51,7 +51,14 @@ class ModernApp(BaseApp):
         page_host.grid_columnconfigure(0, weight=1)
 
         def make_page(key):
-            page = ctk.CTkFrame(page_host, fg_color=c["bg"], corner_radius=0)
+            if key == "settings":
+                page = ctk.CTkScrollableFrame(
+                    page_host, fg_color=c["bg"], corner_radius=0,
+                    scrollbar_button_color=c["panel2"],
+                    scrollbar_button_hover_color=c["line"],
+                )
+            else:
+                page = ctk.CTkFrame(page_host, fg_color=c["bg"], corner_radius=0)
             page.grid(row=0, column=0, sticky="nsew")
             self._pages[key] = page
             return page
