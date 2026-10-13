@@ -345,7 +345,7 @@ class App:
         if not urls:
             messagebox.showwarning("Enlace no válido", "No encontré ningún enlace http(s).")
             return
-        mode = MODES[self.mode.get()]
+        mode = "auto"  # El formato definitivo se elige tras analizar el enlace.
         for url in urls:
             job = self.queue.add(url, self.quality.get(), self.audio_format.get(),
                                  self.video_audio.get())

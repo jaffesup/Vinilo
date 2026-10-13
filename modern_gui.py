@@ -4,10 +4,10 @@ La lógica de descargas se reutiliza desde gui.App para evitar duplicar
 el motor, historial, ajustes y manejo de eventos.
 """
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 import customtkinter as ctk
 
-from gui import App as BaseApp
+from gui import App as BaseApp, MODES
 import theme
 
 
@@ -89,7 +89,7 @@ class ModernApp(BaseApp):
         grid = ctk.CTkFrame(settings_card, fg_color="transparent")
         grid.pack(fill="x", padx=18, pady=(0, 16))
         for col in range(3): grid.grid_columnconfigure(col, weight=1, uniform="pref")
-        self._modern_option(grid, 0, 0, "Contenido", self.mode, list({"Automático": "auto", "Audio": "audio", "Video": "video"}), self._on_option)
+        self._modern_option(grid, 0, 0, "Contenido predeterminado", self.mode, list(MODES), self._on_option)
         self._modern_option(grid, 0, 1, "Calidad", self.quality, __import__("downloader").QUALITIES, self._on_option)
         self._modern_option(grid, 0, 2, "Formato de audio", self.audio_format, __import__("downloader").AUDIO_FORMATS, self._on_option)
         self._modern_option(grid, 1, 0, "Audio en vídeo", self.video_audio, __import__("downloader").VIDEO_AUDIO_OPTIONS, self._on_option)
@@ -149,6 +149,119 @@ class ModernApp(BaseApp):
         self.log.pack(fill="x")
         self.log.configure(state="disabled")
         self.add_log("Vinilo iniciado.")
+
+
+    def _ev_job(self, job_id):
+        job = self.queue.get(job_id)
+        if job and job.status == "pending" and not getattr(job, "_preferences_asked", False):
+            job._preferences_asked = True
+            self._ask_download_preferences(job)
+        super()._ev_job(job_id)
+
+    def _ask_download_preferences(self, job):
+        c = self.colors
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title("Preferencias de descarga")
+        dialog.geometry("520x540")
+        dialog.minsize(480, 500)
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.configure(fg_color=c["bg"])
+        outer = ctk.CTkFrame(dialog, fg_color=c["panel"], corner_radius=18,
+                              border_width=1, border_color=c["line"])
+        outer.pack(fill="both", expand=True, padx=16, pady=16)
+        ctk.CTkLabel(outer, text="PREPARAR DESCARGA",
+                     font=("Segoe UI", 11, "bold"), text_color=c["gold"]).pack(
+                         anchor="w", padx=18, pady=(18, 5))
+        ctk.CTkLabel(outer, text=job.title or job.url, wraplength=440,
+                     justify="left", font=("Segoe UI", 15, "bold"),
+                     text_color=c["text"]).pack(anchor="w", padx=18, pady=(0, 14))
+        ctk.CTkLabel(outer, text=("Playlist detectada" if job.kind and job.kind.is_playlist
+                                  else "Contenido individual detectado"),
+                     text_color=c["muted"]).pack(anchor="w", padx=18, pady=(0, 8))
+        inferred = "audio" if job.kind and job.kind.is_audio else "video"
+        initial = {"Audio": "audio", "Video": "video"}.get(self.cfg.get("mode"), inferred)
+        mode_var = tk.StringVar(value=initial)
+        modebox = ctk.CTkFrame(outer, fg_color="transparent")
+        modebox.pack(fill="x", padx=18, pady=(0, 12))
+        ctk.CTkLabel(modebox, text="¿Qué quieres descargar?", text_color=c["muted"]).pack(
+            anchor="w", pady=(0, 6))
+        ctk.CTkRadioButton(modebox, text="Solo audio", variable=mode_var, value="audio",
+                           fg_color=c["gold"], text_color=c["text"]).pack(side="left", padx=(0, 18))
+        ctk.CTkRadioButton(modebox, text="Vídeo con audio", variable=mode_var, value="video",
+                           fg_color=c["gold"], text_color=c["text"]).pack(side="left")
+        from downloader import QUALITIES, AUDIO_FORMATS, VIDEO_AUDIO_OPTIONS
+        quality_var = tk.StringVar(value=job.quality or self.quality.get())
+        audio_var = tk.StringVar(value=job.audio_format or self.audio_format.get())
+        va_var = tk.StringVar(value=job.video_audio or self.video_audio.get())
+        self._dialog_option(outer, "Calidad del vídeo", quality_var, QUALITIES, c)
+        self._dialog_option(outer, "Formato de audio", audio_var, AUDIO_FORMATS, c)
+        self._dialog_option(outer, "Audio dentro del vídeo", va_var, VIDEO_AUDIO_OPTIONS, c)
+        dest_var = tk.StringVar(value=self.dest.get())
+        ctk.CTkLabel(outer, text="Carpeta de descarga", text_color=c["muted"]).pack(
+            anchor="w", padx=18, pady=(8, 5))
+        destrow = ctk.CTkFrame(outer, fg_color="transparent")
+        destrow.pack(fill="x", padx=18)
+        ctk.CTkEntry(destrow, textvariable=dest_var, height=34, fg_color=c["field"],
+                     border_color=c["line"], text_color=c["text"]).pack(
+                         side="left", fill="x", expand=True, padx=(0, 7))
+        def browse():
+            folder = filedialog.askdirectory(parent=dialog,
+                initialdir=dest_var.get() or self.dest.get(), title="Seleccionar carpeta de descarga")
+            if folder:
+                dest_var.set(folder)
+        ctk.CTkButton(destrow, text="Elegir…", width=88, command=browse,
+                      fg_color=c["panel2"], hover_color=c["line"],
+                      text_color=c["text"]).pack(side="left")
+        buttons = ctk.CTkFrame(outer, fg_color="transparent")
+        buttons.pack(fill="x", padx=18, pady=(18, 18))
+        def confirm():
+            from downloader import Kind
+            playlist = bool(job.kind and job.kind.is_playlist)
+            job.kind = ((Kind.PLAYLIST if playlist else Kind.SONG) if mode_var.get() == "audio"
+                        else (Kind.VIDEO_PLAYLIST if playlist else Kind.VIDEO))
+            job.quality, job.audio_format, job.video_audio = (
+                quality_var.get(), audio_var.get(), va_var.get())
+            job.dest = dest_var.get().strip() or self.dest.get()
+            self.mode.set("Audio" if mode_var.get() == "audio" else "Video")
+            self.quality.set(job.quality)
+            self.audio_format.set(job.audio_format)
+            self.video_audio.set(job.video_audio)
+            self.dest.set(job.dest)
+            self._save_settings()
+            self.add_log("Preferencias aplicadas a: " + (job.title or job.url))
+            dialog.destroy()
+            self.refresh_row(job.id)
+        ctk.CTkButton(buttons, text="Confirmar", height=38, fg_color=c["gold"],
+                      hover_color=c["gold_hover"], text_color="#171717",
+                      command=confirm).pack(side="right")
+        ctk.CTkButton(buttons, text="Cancelar trabajo", height=38, fg_color=c["panel2"],
+                      hover_color=c["line"], text_color=c["text"],
+                      command=lambda: self._cancel_preferences(job, dialog)).pack(
+                          side="right", padx=(0, 8))
+        dialog.protocol("WM_DELETE_WINDOW", lambda: self._cancel_preferences(job, dialog))
+        dialog.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - dialog.winfo_width()) // 2
+        y = self.root.winfo_rooty() + (self.root.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{max(0, x)}+{max(0, y)}")
+        dialog.wait_window()
+
+    def _dialog_option(self, parent, label, variable, values, colors):
+        row = ctk.CTkFrame(parent, fg_color="transparent")
+        row.pack(fill="x", padx=18, pady=4)
+        ctk.CTkLabel(row, text=label, text_color=colors["muted"],
+                     width=155, anchor="w").pack(side="left")
+        ctk.CTkOptionMenu(row, variable=variable, values=list(values),
+                          fg_color=colors["panel2"], button_color=colors["field"],
+                          button_hover_color=colors["line"], dropdown_fg_color=colors["panel"],
+                          text_color=colors["text"], width=210).pack(side="right", fill="x", expand=True)
+
+    def _cancel_preferences(self, job, dialog):
+        self.queue.remove(job.id)
+        if self.tree.exists(str(job.id)):
+            self.tree.delete(str(job.id))
+        self.add_log("Descarga descartada antes de iniciar: " + job.url)
+        dialog.destroy()
 
     def _modern_option(self, parent, row, col, label, variable, values, callback):
         c = self.colors

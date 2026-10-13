@@ -222,6 +222,7 @@ class Job:
     progress: float = 0.0
     item: Optional[tuple] = None
     code: Optional[int] = None
+    dest: Optional[str] = None
 
 
 class DownloadQueue:
@@ -328,7 +329,8 @@ class DownloadQueue:
     def _run_job(self, job, ffmpeg_dir, dest):
         job.status, job.progress, job.item = Status.RUNNING, 0.0, None
         self._emit("job", job.id)
-        cmd = build_command(job.kind, job.url, ffmpeg_dir, dest,
+        job_dest = Path(job.dest) if job.dest else dest
+        cmd = build_command(job.kind, job.url, ffmpeg_dir, job_dest,
                             job.quality, job.audio_format, job.video_audio)
 
         def on_line(line):
