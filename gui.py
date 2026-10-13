@@ -157,8 +157,7 @@ class App:
         preview = ttk.LabelFrame(main, text="  VISTA PREVIA  ", padding=14)
         preview.pack(fill="x", pady=(0, 18))
         self.preview_label = tk.Label(
-            preview, text="SIN
-PORTADA", bg=theme.FIELD, fg=theme.MUTED,
+            preview, text="SIN\\nPORTADA", bg=theme.FIELD, fg=theme.MUTED,
             width=18, height=7, compound="center", relief="flat",
             anchor="center", font=("Segoe UI", 9, "bold")
         )
