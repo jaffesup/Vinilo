@@ -148,6 +148,22 @@ def build_command(kind: Kind, url: str, ffmpeg_dir: Path, dest: Path,
         frame_rate = frame_rate.lower().removesuffix(" fps").removesuffix("p")
         if frame_rate.isdigit():
             cmd += ["-S", f"fps:{frame_rate}"]
+    subtitle_format = str(options.get("preferred_subtitle_format", "best")).lower()
+    if subtitle_format in ("srt", "vtt", "ass", "lrc"):
+        cmd += ["--convert-subs", subtitle_format]
+    video_codec = str(options.get("preferred_video_codec", "Any")).lower()
+    video_codec_sort = {"h264": "vcodec:h264", "av1": "vcodec:av01",
+                        "vp9": "vcodec:vp9"}.get(video_codec)
+    if video_codec_sort:
+        cmd += ["-S", video_codec_sort]
+    audio_codec = str(options.get("preferred_audio_codec", "Any")).lower()
+    audio_codec_sort = {"aac": "acodec:aac", "opus": "acodec:opus",
+                        "mp3": "acodec:mp3"}.get(audio_codec)
+    if audio_codec_sort:
+        cmd += ["-S", audio_codec_sort]
+    browser = str(options.get("cookies_from_browser", "none")).lower()
+    if browser in ("chrome", "edge", "firefox", "brave", "opera", "vivaldi"):
+        cmd += ["--cookies-from-browser", browser]
     if options.get("overwrite_files", False):
         cmd.append("--force-overwrites")
     extra_args = str(options.get("extra_ytdlp_args", "")).strip()
