@@ -3,6 +3,7 @@ con otra interfaz. Los eventos se avisan con un callback que se llama
 desde hilos de trabajo; la interfaz decide cómo pasarlos a su hilo."""
 import json
 import re
+import shlex
 import subprocess
 import threading
 import time
@@ -120,11 +121,42 @@ def describe(url: str, info: Optional[dict]) -> str:
 
 def build_command(kind: Kind, url: str, ffmpeg_dir: Path, dest: Path,
                   quality: str = "720p", audio_format: str = "MP3",
-                  video_audio: str = "Mejor disponible") -> list:
-    """Construye el comando de yt-dlp con portada y metadatos para cada elemento."""
-    cmd = [str(YTDLP), "--newline", "--windows-filenames", "--embed-metadata",
-           "--ffmpeg-location", str(ffmpeg_dir), "--embed-thumbnail",
-           "--write-thumbnail", "--convert-thumbnails", "jpg"]
+                  video_audio: str = "Mejor disponible",
+                  options: Optional[dict] = None) -> list:
+    """Construye el comando yt-dlp con opciones avanzadas compatibles con Parabolic."""
+    options = options or {}
+    cmd = [str(YTDLP), "--newline", "--windows-filenames",
+           "--ffmpeg-location", str(ffmpeg_dir)]
+    if options.get("embed_metadata", True):
+        cmd.append("--embed-metadata")
+    if options.get("embed_thumbnail", True):
+        cmd += ["--embed-thumbnail", "--write-thumbnail", "--convert-thumbnails", "jpg"]
+    if options.get("write_subtitles", False):
+        cmd += ["--write-subs", "--sub-langs", str(options.get("subtitle_languages") or "all")]
+    if options.get("write_auto_subtitles", False):
+        cmd += ["--write-auto-subs", "--sub-langs", str(options.get("subtitle_languages") or "all")]
+    if options.get("embed_subtitles", False):
+        cmd += ["--embed-subs", "--sub-langs", str(options.get("subtitle_languages") or "all")]
+    if options.get("split_chapters", False):
+        cmd.append("--split-chapters")
+    if options.get("export_description", False):
+        cmd.append("--write-description")
+    if options.get("write_info_json", False):
+        cmd.append("--write-info-json")
+    frame_rate = str(options.get("preferred_frame_rate", "Any"))
+    if frame_rate not in ("", "Any", "Cualquiera"):
+        frame_rate = frame_rate.lower().removesuffix(" fps").removesuffix("p")
+        if frame_rate.isdigit():
+            cmd += ["-S", f"fps:{frame_rate}"]
+    if options.get("overwrite_files", False):
+        cmd.append("--force-overwrites")
+    extra_args = str(options.get("extra_ytdlp_args", "")).strip()
+    if extra_args:
+        try:
+            # Los argumentos adicionales son intencionales y se dividen sin shell.
+            cmd += shlex.split(extra_args, posix=False)
+        except ValueError as exc:
+            raise ValueError(f"Argumentos adicionales inválidos: {exc}") from exc
 
     if kind.is_audio:
         fmt = audio_format.upper()
@@ -133,7 +165,10 @@ def build_command(kind: Kind, url: str, ffmpeg_dir: Path, dest: Path,
         cmd += ["-x", "--audio-format", fmt.lower(), "--audio-quality", "0"]
         folder = Path(dest) / MUSIC_SUB
     else:
-        cmd += ["-f", video_format(quality), "--merge-output-format", "mp4"]
+        container = str(options.get("video_container", "mp4")).lower()
+        if container not in ("mp4", "webm", "mkv"):
+            container = "mp4"
+        cmd += ["-f", video_format(quality), "--merge-output-format", container]
         if video_audio == "AAC preferido":
             cmd += ["-S", "acodec:aac"]
         elif video_audio == "M4A preferido":
@@ -223,6 +258,7 @@ class Job:
     item: Optional[tuple] = None
     code: Optional[int] = None
     dest: Optional[str] = None
+    options: Optional[dict] = None
 
 
 class DownloadQueue:
@@ -331,7 +367,8 @@ class DownloadQueue:
         self._emit("job", job.id)
         job_dest = Path(job.dest) if job.dest else dest
         cmd = build_command(job.kind, job.url, ffmpeg_dir, job_dest,
-                            job.quality, job.audio_format, job.video_audio)
+                            job.quality, job.audio_format, job.video_audio,
+                            job.options)
 
         def on_line(line):
             changed = False
