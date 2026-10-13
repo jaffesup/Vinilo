@@ -163,6 +163,10 @@ class ModernApp(BaseApp):
         queuehead.grid(row=3, column=0, sticky="new", padx=30, pady=(0, 8))
         ctk.CTkLabel(queuehead, text="Cola de descargas", font=("Segoe UI", 17, "bold"),
                      text_color=c["text"]).pack(side="left")
+        ctk.CTkButton(queuehead, text="Reintentar errores", width=136, height=32,
+                      corner_radius=5, fg_color=c["panel2"], hover_color="#454545",
+                      text_color=c["text"], command=self.retry_failed).pack(
+                          side="right", padx=(8, 0))
         ctk.CTkButton(queuehead, text="Quitar", width=76, height=32, corner_radius=5,
                       fg_color=c["panel2"], hover_color="#454545", text_color=c["text"],
                       command=self.remove_selected).pack(side="right", padx=(8, 0))
