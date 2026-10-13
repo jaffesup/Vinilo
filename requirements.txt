@@ -1,2 +1,4 @@
-# Dependencia opcional para mostrar miniaturas en la vista previa
+# Miniaturas en la vista previa
 Pillow>=10.0.0
+# Widgets modernos y redondeados para la interfaz de Vinilo
+customtkinter>=5.2.2
