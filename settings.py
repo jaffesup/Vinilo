@@ -10,6 +10,18 @@ DEFAULTS = {
     "audio_format": "MP3",
     "video_audio": "Mejor disponible",
     "theme": "dark",
+    "embed_metadata": True,
+    "embed_thumbnail": True,
+    "write_subtitles": False,
+    "write_auto_subtitles": False,
+    "embed_subtitles": False,
+    "subtitle_languages": "all",
+    "split_chapters": False,
+    "export_description": False,
+    "write_info_json": False,
+    "video_container": "mp4",
+    "preferred_frame_rate": "Any",
+    "extra_ytdlp_args": "",
 }
 
 
