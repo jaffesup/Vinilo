@@ -314,6 +314,19 @@ class DownloadQueue:
             self.jobs = [j for j in self.jobs if j.id not in ids]
         return ids
 
+    def retry_failed(self) -> list:
+        """Devuelve los trabajos fallidos a la cola sin duplicarlos."""
+        retried = []
+        with self._lock:
+            for job in self.jobs:
+                if job.status == Status.ERROR:
+                    job.status = Status.PENDING
+                    job.progress = 0.0
+                    job.item = None
+                    job.code = None
+                    retried.append(job.id)
+        return retried
+
     def analyze(self, job: Job, mode: str = "auto") -> None:
         """Bloqueante: la interfaz la llama en un hilo."""
         info = probe(job.url)
