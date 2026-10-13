@@ -369,8 +369,18 @@ class ModernApp(BaseApp):
         ctk.CTkEntry(advanced_grid, textvariable=self.extra_ytdlp_args,
                      placeholder_text="Ej.: --extractor-retries 3", height=34).grid(
                          row=3, column=1, sticky="ew", pady=5)
+        ctk.CTkLabel(advanced_grid, text="Descargas simultáneas",
+                     text_color=c["muted"]).grid(row=4, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.max_concurrent_downloads = tk.StringVar(
+            value=str(self.cfg.get("max_concurrent_downloads", 1)))
+        ctk.CTkOptionMenu(advanced_grid, variable=self.max_concurrent_downloads,
+                          values=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+                          height=34, fg_color=c["panel2"], button_color=c["panel2"],
+                          button_hover_color="#454545").grid(
+                              row=4, column=1, sticky="ew", pady=5)
         for var in (self.subtitle_languages, self.video_container,
-                    self.preferred_frame_rate, self.extra_ytdlp_args):
+                    self.preferred_frame_rate, self.extra_ytdlp_args,
+                    self.max_concurrent_downloads):
             var.trace_add("write", lambda *_: self._save_settings())
 
         show_page("downloads")
@@ -382,6 +392,7 @@ class ModernApp(BaseApp):
             video_container=self.video_container.get(),
             preferred_frame_rate=self.preferred_frame_rate.get(),
             extra_ytdlp_args=self.extra_ytdlp_args.get().strip(),
+            max_concurrent_downloads=max(1, min(10, int(self.max_concurrent_downloads.get()))),
         )
         return values
 
