@@ -132,9 +132,8 @@ class ModernApp(BaseApp):
         statusrow.pack(fill="x", padx=18, pady=(16, 8))
         ctk.CTkLabel(statusrow, text="ESTADO", font=("Segoe UI", 10, "bold"), text_color=c["gold"]).pack(side="left")
         ctk.CTkLabel(statusrow, textvariable=self.status, font=("Segoe UI", 11), text_color=c["text"]).pack(side="left", padx=(12, 0))
-        self.progress = ctk.CTkProgressBar(player, height=8, corner_radius=8, progress_color=c["gold"], fg_color=c["line"])
+        self.progress = ttk.Progressbar(player, orient="horizontal", mode="determinate", maximum=100, value=0)
         self.progress.pack(fill="x", padx=18, pady=(0, 14))
-        self.progress.set(0)
         controls = ctk.CTkFrame(player, fg_color="transparent")
         controls.pack(fill="x", padx=18, pady=(0, 17))
         self.download_btn = ctk.CTkButton(controls, text="↓  Descargar", height=42, corner_radius=13, fg_color=c["gold"], hover_color=c["gold_hover"], text_color="#171717", font=("Segoe UI", 11, "bold"), command=self.start_download)
@@ -188,4 +187,19 @@ class ModernApp(BaseApp):
         if self.preview_url == url:
             self.preview_label.configure(image=None, text="♫\nSIN PORTADA")
             self.preview_hint.configure(text="La miniatura no pudo cargarse.")
-\n    def _selection_changed(self, _event=None):\n        selection = self.tree.selection()\n        if not selection:\n            return\n        job = self.queue.get(int(selection[0]))\n        if not job:\n            return\n        self.preview_title.configure(text=job.title or job.url)\n        if job.thumbnail and job.thumbnail != self.preview_url:\n            self.preview_url = job.thumbnail\n            self.preview_label.configure(image=None, text="♫\nCARGANDO…")\n            threading.Thread(target=self._load_preview, args=(job.id, job.thumbnail), daemon=True).start()\n        elif not job.thumbnail:\n            self.preview_label.configure(image=None, text="♫\nSIN PORTADA")\n            self.preview_hint.configure(text="No hay miniatura disponible para este enlace.")\n
+
+    def _selection_changed(self, _event=None):
+        selection = self.tree.selection()
+        if not selection:
+            return
+        job = self.queue.get(int(selection[0]))
+        if not job:
+            return
+        self.preview_title.configure(text=job.title or job.url)
+        if job.thumbnail and job.thumbnail != self.preview_url:
+            self.preview_url = job.thumbnail
+            self.preview_label.configure(image=None, text="♫\nCARGANDO…")
+            threading.Thread(target=self._load_preview, args=(job.id, job.thumbnail), daemon=True).start()
+        elif not job.thumbnail:
+            self.preview_label.configure(image=None, text="♫\nSIN PORTADA")
+            self.preview_hint.configure(text="No hay miniatura disponible para este enlace.")
