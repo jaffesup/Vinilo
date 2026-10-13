@@ -38,6 +38,44 @@ class DownloaderTests(unittest.TestCase):
         self.assertIn("--merge-output-format", cmd)
         self.assertIn("mp4", cmd)
 
+    def test_advanced_options_add_subtitles_chapters_and_metadata(self):
+        options = {
+            "write_subtitles": True,
+            "write_auto_subtitles": True,
+            "embed_subtitles": True,
+            "subtitle_languages": "es,en",
+            "split_chapters": True,
+            "export_description": True,
+            "write_info_json": True,
+            "video_container": "webm",
+            "preferred_frame_rate": "60",
+        }
+        cmd = build_command(Kind.VIDEO, "https://example.com/video", Path("ffmpeg"),
+                            Path("downloads"), "1080p", options=options)
+        for flag in ("--write-subs", "--write-auto-subs", "--embed-subs",
+                     "--sub-langs", "--split-chapters", "--write-description",
+                     "--write-info-json"):
+            self.assertIn(flag, cmd)
+        self.assertIn("es,en", cmd)
+        self.assertIn("webm", cmd)
+        self.assertIn("fps:60", cmd)
+
+    def test_advanced_options_can_disable_metadata_and_thumbnail(self):
+        cmd = build_command(
+            Kind.SONG, "https://example.com/audio", Path("ffmpeg"), Path("downloads"),
+            options={"embed_metadata": False, "embed_thumbnail": False},
+        )
+        self.assertNotIn("--embed-metadata", cmd)
+        self.assertNotIn("--embed-thumbnail", cmd)
+        self.assertNotIn("--write-thumbnail", cmd)
+
+    def test_invalid_video_container_falls_back_to_mp4(self):
+        cmd = build_command(
+            Kind.VIDEO, "https://example.com/video", Path("ffmpeg"), Path("downloads"),
+            options={"video_container": "not-a-container"},
+        )
+        self.assertEqual(cmd[cmd.index("--merge-output-format") + 1], "mp4")
+
 
 if __name__ == "__main__":
     unittest.main()
