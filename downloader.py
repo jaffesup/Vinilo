@@ -278,7 +278,9 @@ class DownloadQueue:
         self._lock = threading.Lock()
         self._next_id = 1
         self._stop = False
-        self._runner = Runner()
+        self._runner = Runner()  # compatibilidad con código antiguo
+        self._runners = []
+        self._workers_remaining = 0
 
     def get(self, job_id: int) -> Optional[Job]:
         with self._lock:
@@ -326,43 +328,63 @@ class DownloadQueue:
                        "No se pudo analizar el enlace; se detecta por su dirección.")
         self._emit("job", job.id)
 
-    def start(self, ffmpeg_dir: Path, dest: Path) -> bool:
+    def start(self, ffmpeg_dir: Path, dest: Path, max_concurrent: int = 1) -> bool:
+        """Inicia entre 1 y 10 trabajadores independientes."""
         if self.running:
             return False
         self._stop = False
+        try:
+            max_concurrent = max(1, min(10, int(max_concurrent)))
+        except (TypeError, ValueError):
+            max_concurrent = 1
         with self._lock:
             for j in self.jobs:
                 if j.status == Status.CANCELLED:   # reanudar lo interrumpido
                     j.status, j.progress, j.item = Status.PENDING, 0.0, None
-        self.running = True
-        threading.Thread(target=self._worker, args=(ffmpeg_dir, dest),
-                         daemon=True).start()
+            self.running = True
+            self._workers_remaining = max_concurrent
+            self._runners = [Runner() for _ in range(max_concurrent)]
+        for runner in self._runners:
+            threading.Thread(target=self._worker, args=(ffmpeg_dir, dest, runner),
+                             daemon=True).start()
         return True
 
     def cancel(self) -> None:
         self._stop = True
-        self._runner.cancel()
+        for runner in list(self._runners):
+            runner.cancel()
 
     # ---- interno
-    def _worker(self, ffmpeg_dir, dest):
+    def _worker(self, ffmpeg_dir, dest, runner):
         try:
             while not self._stop:
                 with self._lock:
                     job = next((j for j in self.jobs
                                 if j.status == Status.PENDING), None)
+                    if job is not None:
+                        # Reservar el trabajo bajo el mismo lock evita duplicados.
+                        job.status = Status.RUNNING
                     waiting = any(j.status == Status.ANALYZING
                                   for j in self.jobs)
                 if job is None:
-                    if waiting:
-                        time.sleep(0.3)
+                    if waiting and not self._stop:
+                        time.sleep(0.25)
                         continue
                     break
-                self._run_job(job, ffmpeg_dir, dest)
+                self._run_job(job, ffmpeg_dir, dest, runner)
         finally:
-            self.running = False
-            self._emit("finished")
+            notify_finished = False
+            with self._lock:
+                self._workers_remaining -= 1
+                if self._workers_remaining <= 0:
+                    self.running = False
+                    self._runners = []
+                    notify_finished = True
+            if notify_finished:
+                self._emit("finished")
 
-    def _run_job(self, job, ffmpeg_dir, dest):
+    def _run_job(self, job, ffmpeg_dir, dest, runner=None):
+        runner = runner or self._runner
         job.status, job.progress, job.item = Status.RUNNING, 0.0, None
         self._emit("job", job.id)
         job_dest = Path(job.dest) if job.dest else dest
@@ -382,7 +404,7 @@ class DownloadQueue:
             if changed:
                 self._emit("job", job.id)
 
-        code, cancelled = self._runner.run(cmd, on_line)
+        code, cancelled = runner.run(cmd, on_line)
         job.code = code
         if cancelled:
             job.status = Status.CANCELLED
