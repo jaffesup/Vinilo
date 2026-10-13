@@ -19,6 +19,7 @@ DEFAULTS = {
     "split_chapters": False,
     "export_description": False,
     "write_info_json": False,
+    "overwrite_files": False,
     "video_container": "mp4",
     "preferred_frame_rate": "Any",
     "extra_ytdlp_args": "",
