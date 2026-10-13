@@ -1,0 +1,2 @@
+# Dependencia opcional para mostrar miniaturas en la vista previa
+Pillow>=10.0.0
