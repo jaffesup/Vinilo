@@ -94,7 +94,6 @@ class ModernApp(BaseApp):
 
         downloads = make_page("downloads")
         downloads.grid_columnconfigure(0, weight=1)
-        downloads.grid_rowconfigure(3, weight=1)
         header = ctk.CTkFrame(downloads, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", padx=30, pady=(24, 18))
         ctk.CTkLabel(header, text="Descargas", font=("Segoe UI Variable Display", 28, "bold"),
@@ -293,65 +292,6 @@ class ModernApp(BaseApp):
                          anchor="w", padx=18, pady=(0, 15))
 
         show_page("downloads")
-
-    def _modern_option(self, parent, row, col, label, variable, values, callback):
-        c = self.colors
-        box = ctk.CTkFrame(parent, fg_color="transparent")
-        box.grid(row=row, column=col, sticky="ew", padx=8, pady=(0, 12))
-        ctk.CTkLabel(box, text=label, text_color=c["muted"],
-                     font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 6))
-        widget = ctk.CTkOptionMenu(
-            box, variable=variable, values=list(values), height=36, corner_radius=5,
-            fg_color=c["panel2"], button_color=c["panel2"],
-            button_hover_color="#454545", dropdown_fg_color=c["panel"],
-            text_color=c["text"], font=("Segoe UI", 10),
-            command=lambda _v: callback(),
-        )
-        widget.pack(fill="x")
-
-    def change_theme(self, _event=None):
-        self._save_settings()
-        ctk.set_appearance_mode("dark" if self.theme_mode.get() == "dark" else "light")
-        self.add_log("Tema guardado. Algunos colores de la interfaz siguen la paleta de Vinilo.")
-
-    def add_log(self, text):
-        self.log.configure(state="normal")
-        self.log.insert("end", text + "\\n")
-        self.log.see("end")
-        self.log.configure(state="disabled")
-
-    def _ev_preview(self, job_id, url, image):
-        if not self.root.winfo_exists() or self.preview_url != url:
-            return
-        try:
-            self.preview_image = ctk.CTkImage(light_image=image, dark_image=image, size=(96, 96))
-            self.preview_label.configure(image=self.preview_image, text="")
-            self.preview_hint.configure(text="Miniatura del contenido seleccionado")
-        except Exception:
-            self.preview_label.configure(image=None, text="♫\\nSIN MINIATURA")
-            self.preview_hint.configure(text="Miniatura no disponible")
-
-    def _ev_preview_error(self, job_id, url, error):
-        if self.preview_url == url:
-            self.preview_label.configure(image=None, text="♫\\nSIN MINIATURA")
-            self.preview_hint.configure(text="No se pudo cargar la miniatura.")
-
-    def _selection_changed(self, _event=None):
-        selection = self.tree.selection()
-        if not selection:
-            return
-        job = self.queue.get(int(selection[0]))
-        if not job:
-            return
-        self.preview_title.configure(text=job.title or job.url)
-        if job.thumbnail and job.thumbnail != self.preview_url:
-            self.preview_url = job.thumbnail
-            self.preview_label.configure(image=None, text="♫\\nCARGANDO…")
-            threading.Thread(target=self._load_preview, args=(job.id, job.thumbnail), daemon=True).start()
-        elif not job.thumbnail:
-            self.preview_label.configure(image=None, text="♫\\nSIN MINIATURA")
-            self.preview_hint.configure(text="No hay miniatura disponible para este enlace.")
-
 
     def _ev_job(self, job_id):
         job = self.queue.get(job_id)
