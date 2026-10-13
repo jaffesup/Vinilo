@@ -24,6 +24,10 @@ DEFAULTS = {
     "preferred_frame_rate": "Any",
     "extra_ytdlp_args": "",
     "max_concurrent_downloads": 1,
+    "cookies_from_browser": "none",
+    "preferred_video_codec": "Any",
+    "preferred_audio_codec": "Any",
+    "preferred_subtitle_format": "best",
 }
 
 
