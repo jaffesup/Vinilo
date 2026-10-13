@@ -1,0 +1,18 @@
+# Herramientas externas (cada quien las descarga; pesan mucho y se actualizan solas)
+yt-dlp.exe
+ffmpeg/
+ffmpeg.exe
+
+# Descargas y datos personales
+musica/
+videos/
+historial.txt
+config.json
+
+# Python / PyInstaller
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+*.spec
