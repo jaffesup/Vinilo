@@ -291,7 +291,97 @@ class ModernApp(BaseApp):
                      font=("Segoe UI", 11), text_color=c["muted"]).pack(
                          anchor="w", padx=18, pady=(0, 15))
 
+        # Opciones avanzadas inspiradas en la sección Downloader de Parabolic.
+        advanced = ctk.CTkFrame(settings_page, fg_color=c["panel"], corner_radius=8,
+                                border_width=1, border_color=c["line"])
+        advanced.pack(fill="x", padx=30, pady=(0, 20))
+        ctk.CTkLabel(advanced, text="Descargas avanzadas",
+                     font=("Segoe UI", 15, "bold"), text_color=c["text"]).pack(
+                         anchor="w", padx=18, pady=(17, 5))
+        ctk.CTkLabel(advanced,
+                     text="Estas opciones se aplican a los enlaces nuevos. Algunas dependen de que el sitio y FFmpeg las admitan.",
+                     font=("Segoe UI", 11), text_color=c["muted"], wraplength=700,
+                     justify="left").pack(anchor="w", padx=18, pady=(0, 12))
+        self.advanced_vars = {
+            "embed_metadata": tk.BooleanVar(value=self.cfg.get("embed_metadata", True)),
+            "embed_thumbnail": tk.BooleanVar(value=self.cfg.get("embed_thumbnail", True)),
+            "write_subtitles": tk.BooleanVar(value=self.cfg.get("write_subtitles", False)),
+            "write_auto_subtitles": tk.BooleanVar(value=self.cfg.get("write_auto_subtitles", False)),
+            "embed_subtitles": tk.BooleanVar(value=self.cfg.get("embed_subtitles", False)),
+            "split_chapters": tk.BooleanVar(value=self.cfg.get("split_chapters", False)),
+            "export_description": tk.BooleanVar(value=self.cfg.get("export_description", False)),
+            "write_info_json": tk.BooleanVar(value=self.cfg.get("write_info_json", False)),
+            "overwrite_files": tk.BooleanVar(value=self.cfg.get("overwrite_files", False)),
+        }
+        checks = ctk.CTkFrame(advanced, fg_color="transparent")
+        checks.pack(fill="x", padx=14, pady=(0, 12))
+        for key, label in (
+            ("embed_metadata", "Incrustar metadatos"),
+            ("embed_thumbnail", "Incrustar y guardar miniatura"),
+            ("write_subtitles", "Descargar subtítulos disponibles"),
+            ("write_auto_subtitles", "Descargar subtítulos automáticos"),
+            ("embed_subtitles", "Incrustar subtítulos en el vídeo"),
+            ("split_chapters", "Separar vídeo por capítulos"),
+            ("export_description", "Guardar descripción en archivo"),
+            ("write_info_json", "Guardar metadatos JSON"),
+            ("overwrite_files", "Sobrescribir archivos existentes"),
+        ):
+            ctk.CTkCheckBox(checks, text=label, variable=self.advanced_vars[key],
+                            command=self._save_settings, text_color=c["text"],
+                            fg_color=c["gold"], hover_color=c["gold_hover"],
+                            border_color=c["muted"], checkmark_color="#101010").pack(
+                                anchor="w", padx=6, pady=5)
+        advanced_grid = ctk.CTkFrame(advanced, fg_color="transparent")
+        advanced_grid.pack(fill="x", padx=18, pady=(0, 18))
+        advanced_grid.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(advanced_grid, text="Idiomas de subtítulos",
+                     text_color=c["muted"]).grid(row=0, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.subtitle_languages = tk.StringVar(value=self.cfg.get("subtitle_languages", "all"))
+        ctk.CTkEntry(advanced_grid, textvariable=self.subtitle_languages,
+                     placeholder_text="all, es, en", height=34).grid(
+                         row=0, column=1, sticky="ew", pady=5)
+        ctk.CTkLabel(advanced_grid, text="Contenedor de vídeo",
+                     text_color=c["muted"]).grid(row=1, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.video_container = tk.StringVar(value=self.cfg.get("video_container", "mp4"))
+        ctk.CTkOptionMenu(advanced_grid, variable=self.video_container,
+                          values=["mp4", "webm", "mkv"], height=34,
+                          fg_color=c["panel2"], button_color=c["panel2"],
+                          button_hover_color="#454545").grid(
+                              row=1, column=1, sticky="ew", pady=5)
+        ctk.CTkLabel(advanced_grid, text="FPS preferidos",
+                     text_color=c["muted"]).grid(row=2, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.preferred_frame_rate = tk.StringVar(value=self.cfg.get("preferred_frame_rate", "Any"))
+        ctk.CTkOptionMenu(advanced_grid, variable=self.preferred_frame_rate,
+                          values=["Any", "24", "25", "30", "50", "60"], height=34,
+                          fg_color=c["panel2"], button_color=c["panel2"],
+                          button_hover_color="#454545").grid(
+                              row=2, column=1, sticky="ew", pady=5)
+        ctk.CTkLabel(advanced_grid, text="Argumentos extra de yt-dlp",
+                     text_color=c["muted"]).grid(row=3, column=0, sticky="w", padx=(0, 12), pady=5)
+        self.extra_ytdlp_args = tk.StringVar(value=self.cfg.get("extra_ytdlp_args", ""))
+        ctk.CTkEntry(advanced_grid, textvariable=self.extra_ytdlp_args,
+                     placeholder_text="Ej.: --extractor-retries 3", height=34).grid(
+                         row=3, column=1, sticky="ew", pady=5)
+        for var in (self.subtitle_languages, self.video_container,
+                    self.preferred_frame_rate, self.extra_ytdlp_args):
+            var.trace_add("write", lambda *_: self._save_settings())
+
         show_page("downloads")
+
+    def _advanced_options(self):
+        values = {key: variable.get() for key, variable in self.advanced_vars.items()}
+        values.update(
+            subtitle_languages=self.subtitle_languages.get().strip() or "all",
+            video_container=self.video_container.get(),
+            preferred_frame_rate=self.preferred_frame_rate.get(),
+            extra_ytdlp_args=self.extra_ytdlp_args.get().strip(),
+        )
+        return values
+
+    def _save_settings(self):
+        if hasattr(self, "advanced_vars"):
+            self.cfg.update(self._advanced_options())
+        super()._save_settings()
 
     def _ev_job(self, job_id):
         job = self.queue.get(job_id)
@@ -365,6 +455,7 @@ class ModernApp(BaseApp):
             job.quality, job.audio_format, job.video_audio = (
                 quality_var.get(), audio_var.get(), va_var.get())
             job.dest = dest_var.get().strip() or self.dest.get()
+            job.options = self._advanced_options()
             self.mode.set("Audio" if mode_var.get() == "audio" else "Video")
             self.quality.set(job.quality)
             self.audio_format.set(job.audio_format)
