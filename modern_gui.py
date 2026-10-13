@@ -48,7 +48,7 @@ class ModernApp(BaseApp):
         brand.pack(side="left", fill="x", expand=True)
         ctk.CTkLabel(brand, text="VINILO", font=("Segoe UI", 29, "bold"), text_color=c["text"]).pack(anchor="w")
         ctk.CTkLabel(brand, text="TU COLECCIÓN. TU RITMO.", font=("Segoe UI", 10, "bold"), text_color=c["gold"]).pack(anchor="w", pady=(1, 0))
-        ctk.CTkLabel(head, text="●  LISTO PARA DESCARGAR", font=("Segoe UI", 10, "bold"), text_color=c["green"], fg_color=c["panel"], corner_radius=18, padx=14, pady=9).pack(side="right", anchor="n", pady=5)
+        ctk.CTkLabel(head, text="●  LISTO PARA DESCARGAR", font=("Segoe UI", 10, "bold"), text_color=c["green"], fg_color=c["panel"], corner_radius=18, width=205, height=36).pack(side="right", anchor="n", pady=5)
 
         # Zona destacada: portada grande y formulario integrado.
         hero = ctk.CTkFrame(content, fg_color=c["panel"], corner_radius=22, border_width=1, border_color=c["line"])
