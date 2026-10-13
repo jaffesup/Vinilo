@@ -415,6 +415,15 @@ class App:
             if self.tree.exists(str(job_id)):
                 self.tree.delete(str(job_id))
 
+    def retry_failed(self):
+        retried = self.queue.retry_failed()
+        for job_id in retried:
+            self.refresh_row(job_id)
+        if retried:
+            self.status.set(f"{len(retried)} descarga(s) fallida(s) preparada(s) para reintentar.")
+        else:
+            self.status.set("No hay descargas fallidas para reintentar.")
+
     def _check_tools(self):
         if not paths.YTDLP.is_file():
             messagebox.showerror("Falta yt-dlp.exe", f"No encuentro:\n{paths.YTDLP}")
