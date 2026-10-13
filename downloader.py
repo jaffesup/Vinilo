@@ -384,7 +384,13 @@ class DownloadQueue:
                         time.sleep(0.25)
                         continue
                     break
-                self._run_job(job, ffmpeg_dir, dest, runner)
+                try:
+                    self._run_job(job, ffmpeg_dir, dest, runner)
+                except Exception as exc:
+                    job.status, job.code = Status.ERROR, -1
+                    self._emit("line", job.id, f"Error preparando la descarga: {exc}")
+                    self._emit("job", job.id)
+                    self._emit("done", job.id)
         finally:
             notify_finished = False
             with self._lock:
