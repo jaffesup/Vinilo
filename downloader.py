@@ -17,7 +17,9 @@ from paths import YTDLP
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # evita ventanas negras
 MUSIC_SUB = "musica"
 VIDEO_SUB = "videos"
-QUALITIES = ["360p", "480p", "720p", "1080p", "Mejor disponible"]
+QUALITIES = ["360p", "480p", "720p", "1080p", "1440p", "2160p", "Mejor disponible"]
+AUDIO_FORMATS = ["MP3", "M4A", "OPUS", "FLAC", "WAV"]
+VIDEO_AUDIO_OPTIONS = ["Mejor disponible", "AAC preferido", "M4A preferido"]
 
 
 class Kind(Enum):
@@ -117,16 +119,25 @@ def describe(url: str, info: Optional[dict]) -> str:
 
 
 def build_command(kind: Kind, url: str, ffmpeg_dir: Path, dest: Path,
-                  quality: str = "720p") -> list:
+                  quality: str = "720p", audio_format: str = "MP3",
+                  video_audio: str = "Mejor disponible") -> list:
+    """Construye el comando de yt-dlp con portada y metadatos para cada elemento."""
     cmd = [str(YTDLP), "--newline", "--windows-filenames", "--embed-metadata",
-           "--ffmpeg-location", str(ffmpeg_dir)]
+           "--ffmpeg-location", str(ffmpeg_dir), "--embed-thumbnail",
+           "--write-thumbnail", "--convert-thumbnails", "jpg"]
 
     if kind.is_audio:
-        cmd += ["-x", "--audio-format", "mp3", "--audio-quality", "0",
-                "--embed-thumbnail", "--convert-thumbnails", "jpg"]
+        fmt = audio_format.upper()
+        if fmt not in AUDIO_FORMATS:
+            fmt = "MP3"
+        cmd += ["-x", "--audio-format", fmt.lower(), "--audio-quality", "0"]
         folder = Path(dest) / MUSIC_SUB
     else:
         cmd += ["-f", video_format(quality), "--merge-output-format", "mp4"]
+        if video_audio == "AAC preferido":
+            cmd += ["-S", "acodec:aac"]
+        elif video_audio == "M4A preferido":
+            cmd += ["-S", "ext:mp4:m4a"]
         folder = Path(dest) / VIDEO_SUB
 
     if kind.is_playlist:
@@ -202,7 +213,10 @@ class Job:
     id: int
     url: str
     quality: str = "720p"
+    audio_format: str = "MP3"
+    video_audio: str = "Mejor disponible"
     title: str = ""
+    thumbnail: str = ""
     kind: Optional[Kind] = None
     status: str = Status.ANALYZING
     progress: float = 0.0
@@ -233,13 +247,14 @@ class DownloadQueue:
         with self._lock:
             return next((j for j in self.jobs if j.id == job_id), None)
 
-    def add(self, url: str, quality: str) -> Optional[Job]:
+    def add(self, url: str, quality: str, audio_format: str = "MP3",
+            video_audio: str = "Mejor disponible") -> Optional[Job]:
         """None si ese enlace ya está activo en la cola."""
         active = (Status.ANALYZING, Status.PENDING, Status.RUNNING)
         with self._lock:
             if any(j.url == url and j.status in active for j in self.jobs):
                 return None
-            job = Job(self._next_id, url, quality)
+            job = Job(self._next_id, url, quality, audio_format, video_audio)
             self._next_id += 1
             self.jobs.append(job)
             return job
@@ -267,6 +282,7 @@ class DownloadQueue:
             return
         job.kind = resolve_kind(job.url, info, mode)
         job.title = describe(job.url, info)
+        job.thumbnail = (info or {}).get("thumbnail") or ""
         job.status = Status.PENDING
         if info is None:
             self._emit("line", job.id,
@@ -312,7 +328,8 @@ class DownloadQueue:
     def _run_job(self, job, ffmpeg_dir, dest):
         job.status, job.progress, job.item = Status.RUNNING, 0.0, None
         self._emit("job", job.id)
-        cmd = build_command(job.kind, job.url, ffmpeg_dir, dest, job.quality)
+        cmd = build_command(job.kind, job.url, ffmpeg_dir, dest,
+                            job.quality, job.audio_format, job.video_audio)
 
         def on_line(line):
             changed = False
