@@ -23,6 +23,7 @@ DEFAULTS = {
     "video_container": "mp4",
     "preferred_frame_rate": "Any",
     "extra_ytdlp_args": "",
+    "max_concurrent_downloads": 1,
 }
 
 
