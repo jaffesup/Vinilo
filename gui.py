@@ -63,7 +63,7 @@ class App:
         root.after(100, self._pump)
 
     def _build(self):
-        # Lienzo y scrollbar: todo el contenido se adapta a ventanas pequeñas.
+        # Lienzo desplazable para conservar el diseño en pantallas pequeñas.
         outer = ttk.Frame(self.root)
         outer.pack(fill="both", expand=True)
         self.canvas = tk.Canvas(outer, bg=theme.BG, highlightthickness=0)
@@ -71,7 +71,7 @@ class App:
         self.canvas.configure(yscrollcommand=self.vscroll.set)
         self.vscroll.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True)
-        main = ttk.Frame(self.canvas, padding=20)
+        main = ttk.Frame(self.canvas, padding=(28, 24, 28, 28))
         self.main_window = self.canvas.create_window((0, 0), window=main, anchor="nw")
         main.bind("<Configure>", lambda _e: self.canvas.configure(
             scrollregion=self.canvas.bbox("all")))
@@ -79,78 +79,121 @@ class App:
             self.main_window, width=e.width))
         self.canvas.bind_all("<MouseWheel>", self._mousewheel)
 
-        ttk.Label(main, text="Vinilo", style="Title.TLabel").pack(anchor="w")
-        ttk.Label(main, text="Tu biblioteca de música y vídeo, con una estética cálida.",
-                  style="Muted.TLabel").pack(anchor="w", pady=(0, 16))
+        # Cabecera editorial, con un acento dorado discreto.
+        header = ttk.Frame(main)
+        header.pack(fill="x", pady=(0, 22))
+        brand = ttk.Frame(header)
+        brand.pack(side="left", fill="x", expand=True)
+        ttk.Label(brand, text="VINILO  /  MEDIA DOWNLOADER",
+                  style="Eyebrow.TLabel").pack(anchor="w", pady=(0, 5))
+        ttk.Label(brand, text="Tus medios. A tu manera.",
+                  style="Title.TLabel").pack(anchor="w")
+        ttk.Label(brand, text="Una forma sencilla de guardar audio y vídeo.",
+                  style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
+        ttk.Label(header, text="●  LISTO", style="Eyebrow.TLabel").pack(
+            side="right", anchor="ne", padx=(10, 2), pady=(8, 0))
 
-        urlrow = ttk.Frame(main)
-        urlrow.pack(fill="x")
+        # Área principal para añadir enlaces.
+        linkcard = ttk.LabelFrame(main, text="  01  ·  NUEVA DESCARGA  ", padding=16)
+        linkcard.pack(fill="x", pady=(0, 14))
+        ttk.Label(linkcard, text="Pega uno o varios enlaces",
+                  style="Section.TLabel").pack(anchor="w", pady=(0, 10))
         self.url = tk.StringVar()
+        urlrow = ttk.Frame(linkcard)
+        urlrow.pack(fill="x")
         entry = ttk.Entry(urlrow, textvariable=self.url)
-        entry.pack(side="left", fill="x", expand=True)
+        entry.pack(side="left", fill="x", expand=True, ipady=3)
         entry.bind("<Return>", lambda _e: self.add_from_entry())
         entry.focus()
-        ttk.Button(urlrow, text="Agregar enlace", command=self.add_from_entry
-                   ).pack(side="left", padx=(8, 0))
-        ttk.Button(urlrow, text="Pegar varios", command=self.paste_many
-                   ).pack(side="left", padx=(8, 0))
+        ttk.Button(urlrow, text="＋  Agregar enlace", style="Accent.TButton",
+                   command=self.add_from_entry).pack(side="left", padx=(10, 0))
+        ttk.Button(urlrow, text="Pegar varios", command=self.paste_many).pack(
+            side="left", padx=(8, 0))
+        ttk.Label(linkcard, text="Compatible con enlaces individuales y listas de reproducción.",
+                  style="Muted.TLabel").pack(anchor="w", pady=(9, 0))
 
-        options = ttk.LabelFrame(main, text="Preferencias de descarga", padding=12)
-        options.pack(fill="x", pady=(14, 0))
         self.mode = tk.StringVar(value=self.cfg["mode"])
         self.quality = tk.StringVar(value=self.cfg["quality"])
         self.audio_format = tk.StringVar(value=self.cfg["audio_format"])
         self.video_audio = tk.StringVar(value=self.cfg["video_audio"])
         self.theme_mode = tk.StringVar(value=self.cfg["theme"])
 
-        self._option_row(options, 0, "Detectar contenido", self.mode,
-                         list(MODES), self._on_option)
-        self._option_row(options, 1, "Calidad de vídeo", self.quality,
-                         QUALITIES, self._on_option)
-        self._option_row(options, 2, "Formato de audio", self.audio_format,
-                         AUDIO_FORMATS, self._on_option)
-        self._option_row(options, 3, "Audio en vídeo", self.video_audio,
-                         VIDEO_AUDIO_OPTIONS, self._on_option)
-        self._option_row(options, 4, "Apariencia", self.theme_mode,
-                         ["dark", "light"], self.change_theme)
-        ttk.Label(options, text="Los cambios se guardan automáticamente.",
-                  style="Muted.TLabel").grid(row=5, column=0, columnspan=2,
-                                             sticky="w", pady=(7, 0))
-        options.columnconfigure(1, weight=1)
+        # Preferencias en una tarjeta compacta de dos columnas.
+        options = ttk.LabelFrame(main, text="  02  ·  AJUSTES DE DESCARGA  ", padding=16)
+        options.pack(fill="x", pady=(0, 14))
+        options.columnconfigure(1, weight=1, uniform="prefs")
+        options.columnconfigure(3, weight=1, uniform="prefs")
+        self._option_cell(options, 0, 0, "Contenido", self.mode,
+                          list(MODES), self._on_option)
+        self._option_cell(options, 0, 2, "Calidad de vídeo", self.quality,
+                          QUALITIES, self._on_option)
+        self._option_cell(options, 1, 0, "Formato de audio", self.audio_format,
+                          AUDIO_FORMATS, self._on_option)
+        self._option_cell(options, 1, 2, "Audio en vídeo", self.video_audio,
+                          VIDEO_AUDIO_OPTIONS, self._on_option)
+        self._option_cell(options, 2, 0, "Tema", self.theme_mode,
+                          ["dark", "light"], self.change_theme)
+        ttk.Label(options, text="Preferencias guardadas automáticamente.",
+                  style="Muted.TLabel").grid(row=2, column=2, columnspan=2,
+                                              sticky="e", padx=(12, 0), pady=(12, 0))
 
-        destrow = ttk.LabelFrame(main, text="Ubicación de descarga", padding=12)
-        destrow.pack(fill="x", pady=(12, 0))
+        # Destino con acciones agrupadas.
+        destrow = ttk.LabelFrame(main, text="  03  ·  DESTINO  ", padding=14)
+        destrow.pack(fill="x", pady=(0, 14))
         self.dest = tk.StringVar(value=self.cfg["dest"])
-        ttk.Entry(destrow, textvariable=self.dest, state="readonly").pack(
-            side="left", fill="x", expand=True)
-        self.dest_btn = ttk.Button(destrow, text="Elegir carpeta…",
+        ttk.Label(destrow, text="Guardar archivos en", style="Muted.TLabel").pack(
+            anchor="w", pady=(0, 7))
+        destcontrols = ttk.Frame(destrow)
+        destcontrols.pack(fill="x")
+        ttk.Entry(destcontrols, textvariable=self.dest, state="readonly").pack(
+            side="left", fill="x", expand=True, ipady=2)
+        self.dest_btn = ttk.Button(destcontrols, text="Elegir carpeta",
                                    command=self.choose_dest)
-        self.dest_btn.pack(side="left", padx=(8, 0))
-        ttk.Button(destrow, text="Abrir", command=self.open_dest).pack(
-            side="left", padx=(8, 0))
+        self.dest_btn.pack(side="left", padx=(9, 0))
+        ttk.Button(destcontrols, text="Abrir", command=self.open_dest).pack(
+            side="left", padx=(7, 0))
 
-        preview = ttk.LabelFrame(main, text="Vista previa", padding=12)
-        preview.pack(fill="x", pady=(12, 0))
-        self.preview_label = tk.Label(preview, text="Selecciona un elemento de la cola\npara ver su portada o miniatura.",
-                                      bg=theme.PANEL, fg=theme.MUTED,
-                                      width=26, height=9, compound="center",
-                                      relief="flat", anchor="center")
-        self.preview_label.pack(side="left", padx=(0, 14))
-        self.preview_title = ttk.Label(preview, text="Sin selección",
-                                       style="Card.TLabel", wraplength=520)
-        self.preview_title.pack(side="left", fill="x", expand=True, anchor="center")
-        self.preview_hint = ttk.Label(preview, text="La miniatura se carga al analizar el enlace.",
-                                      style="Muted.TLabel", wraplength=520)
-        self.preview_hint.pack(side="left", fill="x", expand=True, anchor="center")
+        # Vista previa discreta; se conserva la carga asíncrona de miniaturas.
+        preview = ttk.LabelFrame(main, text="  VISTA PREVIA  ", padding=14)
+        preview.pack(fill="x", pady=(0, 18))
+        self.preview_label = tk.Label(
+            preview, text="SIN
+PORTADA", bg=theme.FIELD, fg=theme.MUTED,
+            width=18, height=7, compound="center", relief="flat",
+            anchor="center", font=("Segoe UI", 9, "bold")
+        )
+        self.preview_label.pack(side="left", padx=(0, 16))
+        previewinfo = ttk.Frame(preview)
+        previewinfo.pack(side="left", fill="both", expand=True, pady=(8, 0))
+        ttk.Label(previewinfo, text="CONTENIDO SELECCIONADO",
+                  style="Eyebrow.TLabel").pack(anchor="w", pady=(0, 7))
+        self.preview_title = ttk.Label(previewinfo, text="Sin selección",
+                                       style="Section.TLabel", wraplength=560)
+        self.preview_title.pack(anchor="w", fill="x")
+        self.preview_hint = ttk.Label(
+            previewinfo, text="La miniatura aparecerá aquí cuando selecciones un elemento.",
+            style="Muted.TLabel", wraplength=560
+        )
+        self.preview_hint.pack(anchor="w", pady=(7, 0))
 
-        ttk.Label(main, text="Cola de descargas").pack(anchor="w", pady=(16, 5))
+        # Cola y acciones relacionadas.
+        queuehead = ttk.Frame(main)
+        queuehead.pack(fill="x", pady=(0, 8))
+        ttk.Label(queuehead, text="04  ·  Cola de descargas",
+                  style="Section.TLabel").pack(side="left")
+        ttk.Button(queuehead, text="Limpiar terminados",
+                   command=self.clear_finished).pack(side="right")
+        ttk.Button(queuehead, text="Quitar seleccionados",
+                   command=self.remove_selected).pack(side="right", padx=(0, 8))
+
         tableframe = ttk.Frame(main)
         tableframe.pack(fill="both", expand=True)
         self.tree = ttk.Treeview(tableframe, columns=("tipo", "titulo", "estado"),
-                                 show="headings", selectmode="extended", height=8)
+                                 show="headings", selectmode="extended", height=7)
         for col, title, width, stretch in (
-                ("tipo", "Tipo", 125, False), ("titulo", "Título / enlace", 420, True),
-                ("estado", "Estado", 175, False)):
+                ("tipo", "FORMATO", 125, False),
+                ("titulo", "TÍTULO / ENLACE", 420, True),
+                ("estado", "ESTADO", 175, False)):
             self.tree.heading(col, text=title, anchor="w")
             self.tree.column(col, width=width, stretch=stretch, anchor="w")
         ybar = ttk.Scrollbar(tableframe, orient="vertical", command=self.tree.yview)
@@ -164,41 +207,51 @@ class App:
         self.tree.bind("<<TreeviewSelect>>", self._selection_changed)
         self.tree.bind("<Delete>", lambda _e: self.remove_selected())
 
-        qbar = ttk.Frame(main)
-        qbar.pack(fill="x", pady=(8, 0))
-        ttk.Button(qbar, text="Quitar seleccionados",
-                   command=self.remove_selected).pack(side="left")
-        ttk.Button(qbar, text="Limpiar terminados",
-                   command=self.clear_finished).pack(side="left", padx=8)
-
-        self.progress = ttk.Progressbar(main, maximum=100)
-        self.progress.pack(fill="x", pady=(14, 4))
+        # Estado, progreso y controles principales.
+        statuscard = ttk.LabelFrame(main, text="  ESTADO DE LA SESIÓN  ", padding=14)
+        statuscard.pack(fill="x", pady=(14, 0))
         self.status = tk.StringVar(value="Listo para descargar.")
-        ttk.Label(main, textvariable=self.status).pack(anchor="w")
-        actions = ttk.Frame(main)
-        actions.pack(fill="x", pady=(12, 0))
-        self.download_btn = ttk.Button(actions, text="Descargar",
-                                       style="Accent.TButton",
-                                       command=self.start_download)
+        ttk.Label(statuscard, textvariable=self.status,
+                  style="Section.TLabel").pack(anchor="w", pady=(0, 9))
+        self.progress = ttk.Progressbar(statuscard, maximum=100)
+        self.progress.pack(fill="x")
+        actions = ttk.Frame(statuscard)
+        actions.pack(fill="x", pady=(13, 0))
+        self.download_btn = ttk.Button(
+            actions, text="↓  Descargar ahora", style="Accent.TButton",
+            command=self.start_download
+        )
         self.download_btn.pack(side="left")
         self.cancel_btn = ttk.Button(actions, text="Cancelar", state="disabled",
                                      command=self.cancel)
-        self.cancel_btn.pack(side="left", padx=8)
+        self.cancel_btn.pack(side="left", padx=(8, 0))
         ttk.Button(actions, text="Actualizar yt-dlp",
-                   command=self.start_update).pack(side="left")
+                   command=self.start_update).pack(side="left", padx=(8, 0))
         ttk.Button(actions, text="Historial", command=self.show_history).pack(
-            side="left", padx=8)
+            side="left", padx=(8, 0))
         ttk.Button(actions, text="Salir", command=self.on_close).pack(side="right")
 
-        ttk.Label(main, text="Registro", style="Muted.TLabel").pack(
-            anchor="w", pady=(14, 4))
-        self.log = tk.Text(main, height=6, wrap="word", state="disabled",
-                           font=("Consolas", 9), bg=theme.PANEL, fg=theme.FG,
-                           insertbackground=theme.FG, relief="flat",
-                           highlightthickness=1, highlightbackground=theme.BORDER,
-                           padx=8, pady=6)
+        ttk.Label(main, text="REGISTRO DE ACTIVIDAD",
+                  style="Eyebrow.TLabel").pack(anchor="w", pady=(20, 7))
+        self.log = tk.Text(
+            main, height=5, wrap="word", state="disabled",
+            font=("Consolas", 9), bg=theme.PANEL, fg=theme.FG,
+            insertbackground=theme.FG, relief="flat",
+            highlightthickness=1, highlightbackground=theme.BORDER,
+            padx=12, pady=10
+        )
         self.log.pack(fill="x")
         self.add_log("Vinilo iniciado.")
+
+    def _option_cell(self, parent, row, column, label, variable, values, callback):
+        cell = ttk.Frame(parent)
+        cell.grid(row=row, column=column, columnspan=2, sticky="ew",
+                  padx=(0, 14) if column == 0 else (0, 0),
+                  pady=(0, 10) if row < 2 else (0, 0))
+        ttk.Label(cell, text=label, style="Muted.TLabel").pack(anchor="w", pady=(0, 5))
+        cb = ttk.Combobox(cell, textvariable=variable, values=values, state="readonly")
+        cb.pack(fill="x")
+        cb.bind("<<ComboboxSelected>>", callback)
 
     def _option_row(self, parent, row, label, variable, values, callback):
         ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 12), pady=4)
@@ -230,7 +283,7 @@ class App:
         self._save_settings()
         theme.apply(self.root, self.theme_mode.get())
         self.canvas.configure(bg=theme.BG)
-        self.preview_label.configure(bg=theme.PANEL, fg=theme.MUTED)
+        self.preview_label.configure(bg=theme.FIELD, fg=theme.MUTED)
         self.log.configure(bg=theme.PANEL, fg=theme.FG,
                            insertbackground=theme.FG,
                            highlightbackground=theme.BORDER)
