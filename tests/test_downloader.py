@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 from downloader import (
-    Kind, build_command, extract_urls, resolve_kind, video_format
+    DownloadQueue, Kind, Status, build_command, extract_urls, resolve_kind, video_format
 )
 
 
@@ -75,6 +75,17 @@ class DownloaderTests(unittest.TestCase):
             options={"video_container": "not-a-container"},
         )
         self.assertEqual(cmd[cmd.index("--merge-output-format") + 1], "mp4")
+
+    def test_retry_failed_resets_job_to_pending(self):
+        queue = DownloadQueue(lambda *_: None)
+        job = queue.add("https://example.com/video", "720p")
+        job.status = Status.ERROR
+        job.progress = 63.0
+        job.code = 1
+        self.assertEqual(queue.retry_failed(), [job.id])
+        self.assertEqual(job.status, Status.PENDING)
+        self.assertEqual(job.progress, 0.0)
+        self.assertIsNone(job.code)
 
 
 if __name__ == "__main__":
